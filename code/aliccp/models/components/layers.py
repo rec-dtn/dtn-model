@@ -10,7 +10,7 @@ from tensorflow.python.keras.initializers import Zeros, glorot_normal
 from tensorflow.python.keras.layers import Layer
 from tensorflow.python.keras.regularizers import l2
 
-from code.aliccp.models.common.utils import Utils
+from models.common.utils import Utils
 
 
 class Hash(Layer):

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from code.aliccp.models.components.inputs import SparseFeat, DenseFeat, VarLenSparseFeat
+from models.components.inputs import SparseFeat, DenseFeat, VarLenSparseFeat
 
 
 def get_top_inputs_embeddings(feature_columns, features, embeddings, feature_importance_metric="dimension",

@@ -1,5 +1,5 @@
-from keras import Sequential
-from keras.layers import BatchNormalization, Dense, Dropout, ReLU
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import BatchNormalization, Dense, Dropout, ReLU
 
 
 class MLP(Sequential):

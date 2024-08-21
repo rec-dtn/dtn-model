@@ -1,8 +1,8 @@
 # code from clabrugere 
 # https://github.com/clabrugere/ctr-prediction/blob/8b58b49e975ca8dc3bdc41ec5449b696be522bef/models/tensorflow/gdcn.py
 import tensorflow as tf
-from keras import Model, activations
-from keras.layers import Dense, Embedding, Layer
+from tensorflow.keras import Model, activations
+from tensorflow.keras.layers import Dense, Embedding, Layer
 
 from .mlp import MLP
 

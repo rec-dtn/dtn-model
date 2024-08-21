@@ -9,7 +9,7 @@ from tensorflow.python.keras.layers import Embedding, Input
 from tensorflow.python.keras.regularizers import l2
 
 from .layers import Hash, Linear
-from code.aliccp.models.common.utils import Utils
+from models.common.utils import Utils
 
 class SparseFeat(namedtuple('SparseFeat', ['name', 'dimension', 'use_hash', 'dtype','embedding_name','embedding', 'feature_num', 'feature_origin_num', 'feature_info_gain', 'feature_ig', 'feature_attention'])):
     __slots__ = ()

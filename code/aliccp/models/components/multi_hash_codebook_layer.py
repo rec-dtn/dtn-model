@@ -7,9 +7,9 @@ import tensorflow as tf
 from tensorflow.python.keras.layers import Layer, Embedding
 from tensorflow.python.keras.regularizers import l2
 
-from code.aliccp.models.common.utils import Utils
-from code.aliccp.models.components.inputs import get_embedding_initializer
-from code.aliccp.models.components.layers import StrongHash, SENETLayer
+from models.common.utils import Utils
+from models.components.inputs import get_embedding_initializer
+from models.components.layers import StrongHash, SENETLayer
 
 
 class MultiHashCodebookLayer(Layer):

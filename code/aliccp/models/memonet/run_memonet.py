@@ -5,9 +5,9 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow import keras
 
-from code.aliccp.models.common.utils import Utils
-from code.aliccp.models.base_model import BaseModel
-from code.aliccp.models.memonet.memonet_model import MemoNetModel
+from models.common.utils import Utils
+from models.base_model import BaseModel
+from models.memonet.memonet_model import MemoNetModel
 
 
 # tf.enable_eager_execution()

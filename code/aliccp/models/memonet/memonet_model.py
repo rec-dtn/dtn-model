@@ -10,12 +10,12 @@ import copy
 
 import tensorflow as tf
 
-from code.aliccp.models.common import tf_utils
-from code.aliccp.models.common.utils import Utils
-from code.aliccp.models.components.inputs import build_input_features, input_from_feature_columns
-from code.aliccp.models.components.layers import DenseEmbeddingLayer, PredictionLayer, DNNLayer
-from code.aliccp.models.components.multi_hash_codebook_layer import MultiHashCodebookLayer
-from code.aliccp.models.components.multi_hash_codebook_kif_layer import MultiHashCodebookKIFLayer
+from models.common import tf_utils
+from models.common.utils import Utils
+from models.components.inputs import build_input_features, input_from_feature_columns
+from models.components.layers import DenseEmbeddingLayer, PredictionLayer, DNNLayer
+from models.components.multi_hash_codebook_layer import MultiHashCodebookLayer
+from models.components.multi_hash_codebook_kif_layer import MultiHashCodebookKIFLayer
 
 
 class MemoNetModel(object):

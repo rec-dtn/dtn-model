@@ -1,7 +1,7 @@
 import numpy as np
 
-from code.aliccp.models.common.data_loader import DataLoader
-from code.aliccp.models.components.inputs import VarLenSparseFeat
+from models.common.data_loader import DataLoader
+from models.components.inputs import VarLenSparseFeat
 
 
 class BatchGenerator(object):

@@ -6,10 +6,10 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
 
-from code.aliccp.models.common.batch_generator import BatchGenerator
-from code.aliccp.models.common.constants import Constants
-from code.aliccp.models.common.data_loader import DataLoader
-from code.aliccp.models.components.inputs import SparseFeat, DenseFeat, VarLenSparseFeat
+from models.common.batch_generator import BatchGenerator
+from models.common.constants import Constants
+from models.common.data_loader import DataLoader
+from models.components.inputs import SparseFeat, DenseFeat, VarLenSparseFeat
 
 
 class BaseModel(object):
