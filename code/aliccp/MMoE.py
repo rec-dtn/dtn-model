@@ -13,7 +13,7 @@ import tensorflow as tf
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string("job_name", 'mmoe_train', "One of 'ps', 'worker'")
 tf.app.flags.DEFINE_integer("num_threads", 64, "Number of threads")
-tf.app.flags.DEFINE_integer("embedding_size", 64, "embedding大小，Embedding size")
+tf.app.flags.DEFINE_integer("embedding_size", 16, "embedding大小，Embedding size")
 tf.app.flags.DEFINE_integer("num_epochs", 10, "Number of epochs")
 tf.app.flags.DEFINE_integer("batch_size", 1024, "Number of batch size")
 tf.app.flags.DEFINE_integer("log_steps", 100, "save summary every steps")
@@ -24,7 +24,7 @@ tf.app.flags.DEFINE_string("optimizer", 'Adam', "optimizer type {SGD, Adam, Adag
 tf.app.flags.DEFINE_string("deep_layers", '128,64', "deep layers")
 tf.app.flags.DEFINE_string("dropout", '0.5,0.5', "dropout rate")
 tf.app.flags.DEFINE_float("batch_norm_decay", 0.9, "decay for the moving average(recommend trying decay=0.9)")
-tf.app.flags.DEFINE_string("data_dir", '../data', "data dir")
+tf.app.flags.DEFINE_string("data_dir", '../../data/aliccp', "data dir")
 tf.app.flags.DEFINE_string("model_dir", './model/mmoe', "code check point dir")
 tf.app.flags.DEFINE_string("servable_model_dir", './model/mmoe',
                            "export servable code for TensorFlow Serving")
@@ -33,7 +33,7 @@ tf.app.flags.DEFINE_boolean("clear_existing_model", True, "clear existing code o
 tf.app.flags.DEFINE_string("pos_weights", "200,3000", "positive sample weight")
 tf.app.flags.DEFINE_integer("experts_num", 8, "expert nums")
 tf.app.flags.DEFINE_integer("task_num", 2, "task nums")
-tf.app.flags.DEFINE_string("vocab_index", '../data/vocab/', "feature index table")
+tf.app.flags.DEFINE_string("vocab_index", '../../data/aliccp/vocab/', "feature index table")
 tf.app.flags.DEFINE_string("loss_weights", '1.0,1.0', "loss weight")
 tf.app.flags.DEFINE_string("tower_units", '128,64', "tower units")
 
@@ -68,6 +68,25 @@ feat_702_index_file_path = FLAGS.vocab_index + 'vocab_702'
 feat_853_index_file_path = FLAGS.vocab_index + 'vocab_853'
 feat_301_index_file_path = FLAGS.vocab_index + 'vocab_301'
 
+vocabs_list = [feat_101_index_file_path,feat_109_14_index_file_path,feat_110_14_index_file_path,feat_127_14_index_file_path,feat_150_14_index_file_path,
+              feat_121_index_file_path, feat_122_index_file_path,feat_124_index_file_path,feat_125_index_file_path,feat_126_index_file_path,feat_127_index_file_path,
+               feat_128_index_file_path,feat_129_index_file_path, feat_205_index_file_path,feat_206_index_file_path,feat_207_index_file_path,feat_210_index_file_path,
+                feat_216_index_file_path,feat_508_index_file_path,feat_509_index_file_path,feat_702_index_file_path,feat_853_index_file_path,feat_301_index_file_path
+               ]
+
+
+def load_index_len(vocabs_list):
+    vocab_dict = {}
+    for vfile in vocabs_list:
+        slot = vfile.split('/')[-1].split('_',1)[1]
+        feat_key = f'feat_{slot}'
+        with open(vfile,'r') as f:
+            lines = f.readlines()
+            vocab_dict[feat_key] = len(lines)+1
+    return vocab_dict
+
+vocab_dict = load_index_len(vocabs_list)
+print("[INFO] vocab_dict:",vocab_dict)
 
 def decode_line(line):
     """
@@ -186,7 +205,7 @@ def model_fn(features, labels, mode, params):
     wgts = []
     l2_reg = tf.contrib.layers.l2_regularizer(FLAGS.l2_reg)
     feat_101 = features['feat_101']
-    feat_101_vocab_len = 444719 + 1
+    feat_101_vocab_len = vocab_dict['feat_101']
     feat_101_wgts = tf.get_variable(name='feat_101_wgts',
                                     shape=[feat_101_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -197,7 +216,7 @@ def model_fn(features, labels, mode, params):
     feat_101_emb = tf.reshape(feat_101_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_109_14 = features['feat_109_14']
-    feat_109_14_vocab_len = 12523 + 1
+    feat_109_14_vocab_len = vocab_dict['feat_109_14']
     feat_109_14_wgts = tf.get_variable(name='feat_109_14_wgts',
                                        shape=[feat_109_14_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                        initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -208,7 +227,7 @@ def model_fn(features, labels, mode, params):
     feat_109_14_emb = tf.reshape(feat_109_14_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_110_14 = features['feat_110_14']
-    feat_110_14_vocab_len = 2981053 + 1
+    feat_110_14_vocab_len = vocab_dict['feat_110_14']
     feat_110_14_wgts = tf.get_variable(name='feat_110_14_wgts',
                                        shape=[feat_110_14_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                        initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -219,7 +238,7 @@ def model_fn(features, labels, mode, params):
     feat_110_14_emb = tf.reshape(feat_110_14_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_127_14 = features['feat_127_14']
-    feat_127_14_vocab_len = 426094 + 1
+    feat_127_14_vocab_len = vocab_dict['feat_127_14']
     feat_127_14_wgts = tf.get_variable(name='feat_127_14_wgts',
                                        shape=[feat_127_14_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                        initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -230,7 +249,7 @@ def model_fn(features, labels, mode, params):
     feat_127_14_emb = tf.reshape(feat_127_14_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_150_14 = features['feat_150_14']
-    feat_150_14_vocab_len = 99556 + 1
+    feat_150_14_vocab_len = vocab_dict['feat_150_14']
     feat_150_14_wgts = tf.get_variable(name='feat_150_14_wgts',
                                        shape=[feat_150_14_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                        initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -241,7 +260,7 @@ def model_fn(features, labels, mode, params):
     feat_150_14_emb = tf.reshape(feat_150_14_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_121 = features['feat_121']
-    feat_121_vocab_len = 97 + 1
+    feat_121_vocab_len = vocab_dict['feat_121']
     feat_121_wgts = tf.get_variable(name='feat_121_wgts',
                                     shape=[feat_121_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -252,7 +271,7 @@ def model_fn(features, labels, mode, params):
     feat_121_emb = tf.reshape(feat_121_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_122 = features['feat_122']
-    feat_122_vocab_len = 13 + 1
+    feat_122_vocab_len = vocab_dict['feat_122']
     feat_122_wgts = tf.get_variable(name='feat_122_wgts',
                                     shape=[feat_122_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -263,7 +282,7 @@ def model_fn(features, labels, mode, params):
     feat_122_emb = tf.reshape(feat_122_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_124 = features['feat_124']
-    feat_124_vocab_len = 2 + 1
+    feat_124_vocab_len = vocab_dict['feat_124']
     feat_124_wgts = tf.get_variable(name='feat_124_wgts',
                                     shape=[feat_124_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -274,7 +293,7 @@ def model_fn(features, labels, mode, params):
     feat_124_emb = tf.reshape(feat_124_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_125 = features['feat_125']
-    feat_125_vocab_len = 7 + 1
+    feat_125_vocab_len = vocab_dict['feat_125']
     feat_125_wgts = tf.get_variable(name='feat_125_wgts',
                                     shape=[feat_125_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -285,7 +304,7 @@ def model_fn(features, labels, mode, params):
     feat_125_emb = tf.reshape(feat_125_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_126 = features['feat_126']
-    feat_126_vocab_len = 3 + 1
+    feat_126_vocab_len = vocab_dict['feat_126']
     feat_126_wgts = tf.get_variable(name='feat_126_wgts',
                                     shape=[feat_126_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -296,7 +315,7 @@ def model_fn(features, labels, mode, params):
     feat_126_emb = tf.reshape(feat_126_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_127 = features['feat_127']
-    feat_127_vocab_len = 3 + 1
+    feat_127_vocab_len = vocab_dict['feat_127']
     feat_127_wgts = tf.get_variable(name='feat_127_wgts',
                                     shape=[feat_127_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -307,7 +326,7 @@ def model_fn(features, labels, mode, params):
     feat_127_emb = tf.reshape(feat_127_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_128 = features['feat_128']
-    feat_128_vocab_len = 2 + 1
+    feat_128_vocab_len = vocab_dict['feat_128']
     feat_128_wgts = tf.get_variable(name='feat_128_wgts',
                                     shape=[feat_128_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -318,7 +337,7 @@ def model_fn(features, labels, mode, params):
     feat_128_emb = tf.reshape(feat_128_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_129 = features['feat_129']
-    feat_129_vocab_len = 4 + 1
+    feat_129_vocab_len = vocab_dict['feat_129']
     feat_129_wgts = tf.get_variable(name='feat_129_wgts',
                                     shape=[feat_129_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -329,7 +348,7 @@ def model_fn(features, labels, mode, params):
     feat_129_emb = tf.reshape(feat_129_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_205 = features['feat_205']
-    feat_205_vocab_len = 4217617 + 1
+    feat_205_vocab_len = vocab_dict['feat_205']
     feat_205_wgts = tf.get_variable(name='feat_205_wgts',
                                     shape=[feat_205_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -340,7 +359,7 @@ def model_fn(features, labels, mode, params):
     feat_205_emb = tf.reshape(feat_205_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_206 = features['feat_206']
-    feat_206_vocab_len = 8972 + 1
+    feat_206_vocab_len = vocab_dict['feat_206']
     feat_206_wgts = tf.get_variable(name='feat_206_wgts',
                                     shape=[feat_206_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -351,7 +370,7 @@ def model_fn(features, labels, mode, params):
     feat_206_emb = tf.reshape(feat_206_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_207 = features['feat_207']
-    feat_207_vocab_len = 689084 + 1
+    feat_207_vocab_len = vocab_dict['feat_207']
     feat_207_wgts = tf.get_variable(name='feat_207_wgts',
                                     shape=[feat_207_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -362,7 +381,7 @@ def model_fn(features, labels, mode, params):
     feat_207_emb = tf.reshape(feat_207_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_210 = features['feat_210']
-    feat_210_vocab_len = 99586 + 1
+    feat_210_vocab_len = vocab_dict['feat_210']
     feat_210_wgts = tf.get_variable(name='feat_210_wgts',
                                     shape=[feat_210_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -373,7 +392,7 @@ def model_fn(features, labels, mode, params):
     feat_210_emb = tf.reshape(feat_210_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_216 = features['feat_216']
-    feat_216_vocab_len = 232954 + 1
+    feat_216_vocab_len = vocab_dict['feat_216']
     feat_216_wgts = tf.get_variable(name='feat_216_wgts',
                                     shape=[feat_216_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -384,7 +403,7 @@ def model_fn(features, labels, mode, params):
     feat_216_emb = tf.reshape(feat_216_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_508 = features['feat_508']
-    feat_508_vocab_len = 8168 + 1
+    feat_508_vocab_len = vocab_dict['feat_508']
     feat_508_wgts = tf.get_variable(name='feat_508_wgts',
                                     shape=[feat_508_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -395,7 +414,7 @@ def model_fn(features, labels, mode, params):
     feat_508_emb = tf.reshape(feat_508_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_509 = features['feat_509']
-    feat_509_vocab_len = 466999 + 1
+    feat_509_vocab_len = vocab_dict['feat_509']
     feat_509_wgts = tf.get_variable(name='feat_509_wgts',
                                     shape=[feat_509_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -406,7 +425,7 @@ def model_fn(features, labels, mode, params):
     feat_509_emb = tf.reshape(feat_509_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_702 = features['feat_702']
-    feat_702_vocab_len = 166304 + 1
+    feat_702_vocab_len = vocab_dict['feat_702']
     feat_702_wgts = tf.get_variable(name='feat_702_wgts',
                                     shape=[feat_702_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -417,7 +436,7 @@ def model_fn(features, labels, mode, params):
     feat_702_emb = tf.reshape(feat_702_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_853 = features['feat_853']
-    feat_853_vocab_len = 91218 + 1
+    feat_853_vocab_len = vocab_dict['feat_853']
     feat_853_wgts = tf.get_variable(name='feat_853_wgts',
                                     shape=[feat_853_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -428,7 +447,7 @@ def model_fn(features, labels, mode, params):
     feat_853_emb = tf.reshape(feat_853_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
 
     feat_301 = features['feat_301']
-    feat_301_vocab_len = 43 + 1
+    feat_301_vocab_len = vocab_dict['feat_301']
     feat_301_wgts = tf.get_variable(name='feat_301_wgts',
                                     shape=[feat_301_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
                                     initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
@@ -445,7 +464,7 @@ def model_fn(features, labels, mode, params):
          feat_301_emb], axis=-1)  # None * 1 * (23 * E)
 
     embedding = tf.layers.batch_normalization(embedding)
-
+    print("embedding: cj", embedding)
     experts = []  # [None * 64...]
     with tf.variable_scope("experts-part"):
         for j in range(experts_num):
@@ -572,15 +591,14 @@ def model_fn(features, labels, mode, params):
             loss=loss,
             train_op=train_op)
 
-
 def main(_):
     # ------init Envs------
     print(FLAGS.data_dir)
     tr_files = glob.glob("%s/train_data/train_data.csv" % FLAGS.data_dir)
     print("tr_files:", tr_files)
-    va_files = glob.glob("%s/test_data/test_data.csv" % FLAGS.data_dir)
+    va_files = glob.glob("%s/train_data/train_data.csv" % FLAGS.data_dir)
     print("va_files:", va_files)
-    te_files = glob.glob("%s/test_data/test_data.csv" % FLAGS.data_dir)
+    te_files = glob.glob("%s/train_data/train_data.csv" % FLAGS.data_dir)
     print("te_files:", te_files)
 
     if FLAGS.clear_existing_model:
@@ -591,17 +609,22 @@ def main(_):
         else:
             print("existing code cleaned at %s" % FLAGS.model_dir)
 
-    strategy = tf.distribute.MirroredStrategy(
-        cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())  # train_distribute=strategy, eval_distribute=strategy
-    config_proto = tf.ConfigProto(allow_soft_placement=True,
-                                  device_count={'GPU': 1},
-                                  intra_op_parallelism_threads=0,
-                                  inter_op_parallelism_threads=0,
-                                  log_device_placement=False
-                                  )
-    config = tf.estimator.RunConfig(train_distribute=strategy, eval_distribute=strategy, session_config=config_proto,
-                                    log_step_count_steps=FLAGS.log_steps, save_checkpoints_steps=FLAGS.log_steps * 10,
-                                    save_summary_steps=FLAGS.log_steps * 10, tf_random_seed=2021)
+    # strategy = tf.distribute.MirroredStrategy(
+    #     cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())  # train_distribute=strategy, eval_distribute=strategy
+    # config_proto = tf.ConfigProto(allow_soft_placement=True,
+    #                               device_count={'GPU': 0},
+    #                               intra_op_parallelism_threads=0,
+    #                               inter_op_parallelism_threads=0,
+    #                               log_device_placement=False
+    #                               )
+    # config = tf.estimator.RunConfig(train_distribute=strategy, eval_distribute=strategy, session_config=config_proto,
+    #                                 log_step_count_steps=FLAGS.log_steps, save_checkpoints_steps=FLAGS.log_steps * 10,
+    #                                 save_summary_steps=FLAGS.log_steps * 10, tf_random_seed=2021)
+
+    config_proto = tf.ConfigProto(device_count={'GPU': 0, 'CPU': 1})
+    config = tf.estimator.RunConfig(session_config=config_proto,
+                                    log_step_count_steps=FLAGS.log_steps, save_checkpoints_steps=FLAGS.log_steps,
+                                    save_summary_steps=FLAGS.log_steps, tf_random_seed=2021)
 
     MMoE = tf.estimator.Estimator(model_fn=model_fn, model_dir=FLAGS.model_dir, config=config)
 

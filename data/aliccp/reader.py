@@ -259,7 +259,7 @@ if __name__ == "__main__":
     vocab_path = 'vocab/'
     train_sample_size = 40000000
     test_sample_size = 40000000
-    read_data(train_data_path + '/sample_skeleton_train.csv', train_data_path + '/skeleton_train.csv')
+    read_data(train_data_path + '/less_sample_train.csv', train_data_path + '/skeleton_train.csv')
     print("write skeleton_train.csv successfully")
     read_data(train_data_path + '/common_features_train.csv', train_data_path + '/features_train.csv')
     print("write features_train.csv successfully")
@@ -271,28 +271,29 @@ if __name__ == "__main__":
     train_all_field_feats = join_data2(skeleton_train_path, features_train_path, write_file, train_sample_size,
                                        all_field_id)
 
-    os.system('rm -rf ' + skeleton_train_path)
-    os.system('rm -rf ' + features_train_path)
+    # os.system('rm -rf ' + skeleton_train_path)
+    # os.system('rm -rf ' + features_train_path)
 
-    read_data(test_data_path + '/sample_skeleton_test.csv', test_data_path + '/skeleton_test.csv')
-    print("write skeleton_est.csv successfully")
-    read_data(test_data_path + '/common_features_test.csv', test_data_path + '/features_test.csv')
-    print("write features_test.csv successfully")
+    # read_data(test_data_path + '/sample_skeleton_test.csv', test_data_path + '/skeleton_test.csv')
+    # print("write skeleton_test.csv successfully")
+    # read_data(test_data_path + '/common_features_test.csv', test_data_path + '/features_test.csv')
+    # print("write features_test.csv successfully")
 
-    skeleton_test_path = test_data_path + '/skeleton_test.csv'
-    features_test_path = test_data_path + '/features_test.csv'
+    # skeleton_test_path = test_data_path + '/skeleton_test.csv'
+    # features_test_path = test_data_path + '/features_test.csv'
 
-    write_file = test_data_path + '/test_data.csv'
-    test_all_field_feats = join_data2(skeleton_test_path, features_test_path, write_file, test_sample_size,
-                                      all_field_id)
+    # write_file = test_data_path + '/test_data.csv'
+    # test_all_field_feats = join_data2(skeleton_test_path, features_test_path, write_file, test_sample_size,
+    #                                   all_field_id)
 
-    os.system('rm -rf ' + skeleton_test_path)
-    os.system('rm -rf ' + features_test_path)
+    # os.system('rm -rf ' + skeleton_test_path)
+    # os.system('rm -rf ' + features_test_path)
 
     # 把各特征域的特征值分别写到对应的文件中，作为后续TensorFlow训练的embedding索引文件
     for fi in all_field_id:
         with open('.vocab/vocab_' + fi, 'w') as file_writer:
-            for feat in train_all_field_feats[fi].union(test_all_field_feats[fi]):
+            for feat in train_all_field_feats[fi]:
+            # for feat in train_all_field_feats[fi].union(test_all_field_feats[fi]):
                 file_writer.write("{0}".format(feat) + "\n")
 
     print("vocab has finish !")

@@ -160,8 +160,6 @@ def decode_line(line):
            }, labels
 
 
-
-
 def input_fn(filenames, batch_size=32, num_epochs=1, perform_shuffle=False):
     files = tf.data.Dataset.list_files(filenames)
 
@@ -185,7 +183,6 @@ def input_fn(filenames, batch_size=32, num_epochs=1, perform_shuffle=False):
     dataset.cache()
 
     return dataset
-
 
 def variable_length_feature_process(var_len_feat, vocab_file, emb_params, sep='#',
                                     default_value=-1, sp_weights=None, combiner='sum'):
@@ -475,6 +472,7 @@ def model_fn(features, labels, mode, params):
          feat_301_emb], axis=-1)  # None * 1 * (23 * E)
 
     embedding = tf.layers.batch_normalization(embedding)
+    print("embedding: cj", embedding)
     embedding = tf.reshape(embedding, [-1, 23 * FLAGS.embedding_size])  # None * (F * E)
 
     # task-specific output of each task represents the current task and is used to constrain the private encoder of the task
