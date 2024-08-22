@@ -45,7 +45,8 @@ tf.app.flags.DEFINE_string("loss_weights", '1.0,1.0', "loss weight")
 tf.app.flags.DEFINE_string("exp_per_task", '3,3', "finet_num per task")
 tf.app.flags.DEFINE_integer("shared_num", '2', "shared finet_num")
 tf.app.flags.DEFINE_integer("level_number", '2', "depth")
-tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,memonet', "depth")
+tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,masknet,masknet', "depth")
+# tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,memonet', "depth")
 tf.app.flags.DEFINE_string("gdcn_default_params", '16,2,3,16',"dim_embed,cross,num_hiddin,dim_hidden")
 
 # log level
@@ -520,10 +521,12 @@ def model_fn(features, labels, mode, params):
     #     pass 
     # meituan hinet dtn module 
     def dtn_net(inputs, is_last, level_name, finet_type = ["fullnet"] * 3, use_TSN = False): 
+        print("####### start DTN ##########")
         # dim inputs = dim task
         task_num = FLAGS.task_num
         task_name = list(FLAGS.task_name.strip().split(','))
-        assert len(inputs) == len(task_num) + 1
+        assert len(task_name) == task_num
+        assert len(inputs) == task_num + 1
         finet_lst = [] 
         for input in inputs:
             task_finet = [] 
@@ -536,10 +539,10 @@ def model_fn(features, labels, mode, params):
                     output = gatedcn_func(input) 
                 if finet_type[idx] == 'memonet': 
                     output = memonet_func(input) 
-            task_finet.append(output)
-        finet_lst.append(task_finet) 
+                task_finet.append(output)
+            finet_lst.append(task_finet) 
         # finet_lst list(list(finet))
-        
+        print(finet_lst)
         tasks_finet_output = finet_lst[:task_num] 
         share_finet_output = finet_lst[task_num]
 
@@ -565,13 +568,13 @@ def model_fn(features, labels, mode, params):
             # other 
             gate_lst = []
             for j, finet in enumerate(other_finet): 
-                gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=[1],
+                gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=1,
                                                                 activation_fn=tf.nn.relu, \
                                                                 weights_regularizer=l2_reg)
                 gate_lst.append(gate)
             # share 
             for j, finet in enumerate(share_finet): 
-                gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=[1],
+                gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=1,
                                                                 activation_fn=tf.nn.relu, \
                                                                 weights_regularizer=l2_reg)
                 gate_lst.append(gate)
@@ -584,7 +587,7 @@ def model_fn(features, labels, mode, params):
             # iself 
             gate_lst = []
             for j, finet in enumerate(iself_finet): 
-                gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=[1],
+                gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=1,
                                                                 activation_fn=tf.nn.relu, \
                                                                 weights_regularizer=l2_reg)
                 gate_lst.append(gate)
