@@ -9,7 +9,8 @@ import shutil
 import datetime
 import tensorflow as tf
 
-from models.gdcn import GDCNS
+from models.gdcn_tf1 import GDCN_net
+# from models.gdcn import GDCNS
 from models.memonet.run_memonet import MemoNetRunner
 from models.masknet import MaskNet 
 
@@ -45,7 +46,8 @@ tf.app.flags.DEFINE_string("loss_weights", '1.0,1.0', "loss weight")
 tf.app.flags.DEFINE_string("exp_per_task", '3,3', "finet_num per task")
 tf.app.flags.DEFINE_integer("shared_num", '2', "shared finet_num")
 tf.app.flags.DEFINE_integer("level_number", '2', "depth")
-tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,masknet,masknet', "depth")
+tf.app.flags.DEFINE_integer("gdcn_layers", '2', "gdcn cross layer")
+tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,masknet', "depth")
 # tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,memonet', "depth")
 tf.app.flags.DEFINE_string("gdcn_default_params", '16,2,3,16',"dim_embed,cross,num_hiddin,dim_hidden")
 
@@ -485,24 +487,29 @@ def model_fn(features, labels, mode, params):
     embedding = tf.reshape(embedding, [-1, 23 * FLAGS.embedding_size])  # None * (F * E)
     feature_num = 23 
 
-    def fullnet_func(input):
+    def fullnet_func(task_idx, input):
         output = input 
         fcn_layer = list(map(int, FLAGS.deep_layers.strip().split(','))) 
         for unit in fcn_layer: 
             output = tf.contrib.layers.fully_connected(inputs = output, num_outputs=unit, activation_fn = tf.nn.relu, weights_regularizer = l2_reg) 
         return output
 
-    def masknet_func(input):
+    def masknet_func(task_idx, input):
         
         return input 
     
-    def gatedcn_func(input):
-        dim_embedding, num_cross, num_hidden, dim_hidden = list(map(int, FLAGS.gdcn_default_params.strip().split(',')))
-        model = GDCNS(feature_num, FLAGS.embedding_size, dim_embedding, num_cross, num_hidden, dim_hidden)
-        output = model(input)
-        return output
+    def gatedcn_func(task_idx, input):
+        # dim_embedding, num_cross, num_hidden, dim_hidden = list(map(int, FLAGS.gdcn_default_params.strip().split(',')))
+        # model = GDCNS(feature_num, FLAGS.embedding_size, dim_embedding, num_cross, num_hidden, dim_hidden)
+        # output = model(input)
+        # return output
+        num_layers = FLAGS.gdcn_layers 
+        model = GDCN_net(task_idx, num_layers, input.get_shape().as_list())
+        output = model(input) 
+        return output 
 
-    def memonet_func(input):
+
+    def memonet_func(task_idx, input):
         runner = MemoNetRunner()
         _, concat_embedding = runner.create_model()
         return concat_embedding
@@ -528,17 +535,17 @@ def model_fn(features, labels, mode, params):
         assert len(task_name) == task_num
         assert len(inputs) == task_num + 1
         finet_lst = [] 
-        for input in inputs:
+        for ii, input in enumerate(inputs):
             task_finet = [] 
             for idx in range(len(finet_type)):  
                 if finet_type[idx] == "fullnet": 
-                    output = fullnet_func(input) 
+                    output = fullnet_func(ii, input) 
                 if finet_type[idx] == "masknet": 
-                    output = masknet_func(input) 
+                    output = masknet_func(ii, input) 
                 if finet_type[idx] == "gatedcn": 
-                    output = gatedcn_func(input) 
+                    output = gatedcn_func(ii, input) 
                 if finet_type[idx] == 'memonet': 
-                    output = memonet_func(input) 
+                    output = memonet_func(ii, input) 
                 task_finet.append(output)
             finet_lst.append(task_finet) 
         # finet_lst list(list(finet))
