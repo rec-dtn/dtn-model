@@ -3,8 +3,39 @@
 import tensorflow as tf
 from tensorflow.keras import Model, activations
 from tensorflow.keras.layers import Dense, Embedding, Layer
+from functools import partial
 
 from .mlp import MLP
+
+# def dnn_layer(inputs: tf.Tensor,
+#               hidden_units: Union[List[int], int],
+#               activation: Optional[Union[Callable, str]] = None,
+#               dropout: Optional[float] = 0.,
+#               is_training: Optional[bool] = True,
+#               use_bn: Optional[bool] = True,
+#               l2_reg: float = 0.,
+#               use_bias: bool = True,
+#               scope=None):
+#     if isinstance(hidden_units, int):
+#         hidden_units = [hidden_units]
+
+#     output = inputs
+#     for idx, size in enumerate(hidden_units):
+#         output = tf.layers.dense(output, size,
+#                                  use_bias=use_bias,
+#                                  kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg),
+#                                  kernel_initializer=tf.glorot_normal_initializer(),
+#                                  name=scope+f'_{idx}' if scope else None)
+#         if use_bn:
+#             output = tf.layers.batch_normalization(output, training=is_training, name=scope+f'_bn_{idx}' if scope else None)
+
+#         if activation is not None:
+#             output = activation_layer(activation, is_training=is_training, scope=f'activation_layer_{idx}')(output)
+
+#         if is_training:
+#             output = tf.nn.dropout(output, 1 - dropout)
+
+#     return output
 
 
 # class GDCNS: 
@@ -76,6 +107,7 @@ class GDCN_net:
         self, 
         task_idx, 
         num_layers, 
+        output_dim, 
         input_shape, 
         weights_initializer = tf.glorot_uniform_initializer, 
         bias_initializer = tf.zeros_initializer,
@@ -84,6 +116,7 @@ class GDCN_net:
     ):
         self.task_idx = task_idx
         self.num_layers = num_layers 
+        self.output_dim = output_dim
         self.input_shape = input_shape 
         self.weights_initializer = weights_initializer 
         self.bias_initializer = bias_initializer 
@@ -114,12 +147,23 @@ class GDCN_net:
                 trainable=True 
             )
             self._layers.append((W_c, b_c, W_g))
+        # self.dnn_layer = partial(dnn_layer, dropout=0, use_bn=False, l2_reg=l2_reg)
+
+
 
     def __call__(self, inputs, training=None):
         out = inputs # (bs, dim_input) 
         for W_c, b_c, W_g in self._layers: 
             out = inputs * (tf.matmul(out, W_c) + b_c) * tf.sigmoid(tf.matmul(out, W_g)) + out # (bs, dim_input) 
-        return out 
+        
+        # final_output = self.dnn_layer(tf.concat(output_list, axis=-1), self.hidden_layer_size, activation=tf.nn.relu,
+        #         is_training=is_training)
+        final_output = tf.layers.dense(out, self.output_dim,
+                    use_bias=True,
+                    # kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg),
+                    kernel_initializer=tf.glorot_normal_initializer(),
+                    name=f'{self.task_idx}')
+        return final_output
 
 # class GDCNP(Model):
 #     def __init__(

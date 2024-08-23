@@ -99,8 +99,8 @@ class MaskNet:
                  agg_dim: int,
                  num_mask_block: int,
                  mask_block_ffn_size: Union[List[int], int],
-                 masknet_type: str,
                  hidden_layer_size: Optional[List[int]] = None,
+                 masknet_type: str = 'parallel',
                  dropout: float = 0.,
                  l2_reg: float = 0.
                  ):
@@ -140,24 +140,25 @@ class MaskNet:
         :param is_training:
         :return:
         """
-        if isinstance(embeddings, list):
-            embeddings = tf.stack(embeddings, axis=1)
+        # if isinstance(embeddings, list):
+        #     embeddings = tf.stack(embeddings, axis=1)
 
-        assert len(embeddings.shape) == 3
+        # assert len(embeddings.shape) == 3
 
-        ln_embeddings = tf.contrib.layers.layer_norm(inputs=embeddings,
-                                                     begin_norm_axis=-1,
-                                                     begin_params_axis=-1)
-
-        embeddings = tf.layers.flatten(embeddings)
-        ln_embeddings = tf.layers.flatten(ln_embeddings)
+        # ln_embeddings = tf.contrib.layers.layer_norm(inputs=embeddings,
+        #                                              begin_norm_axis=-1,
+        #                                              begin_params_axis=-1)
+        ln_embeddings = embeddings
+        # embeddings = tf.layers.flatten(embeddings)
+        # ln_embeddings = tf.layers.flatten(ln_embeddings)
 
         output = self.net_func(embeddings, ln_embeddings, is_training)
 
-        output = tf.layers.dense(output, 1, activation=tf.nn.sigmoid,
-                                 kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_reg),
-                                 kernel_initializer=tf.glorot_normal_initializer())
-        return tf.reshape(output, [-1])
+        # output = tf.layers.dense(output, 1, activation=tf.nn.sigmoid,
+        #                          kernel_regularizer=tf.contrib.layers.l2_regularizer(self.l2_reg),
+        #                          kernel_initializer=tf.glorot_normal_initializer())
+        # return tf.reshape(output, [-1])
+        return output
 
     def serial_model(self, embeddings, ln_embeddings, is_training):
         """串行MaskNet"""
@@ -178,6 +179,8 @@ class MaskNet:
 
         final_output = self.dnn_layer(tf.concat(output_list, axis=-1), self.hidden_layer_size, activation=tf.nn.relu,
                                       is_training=is_training)
+        # final_output = tf.concat(output_list, axis=-1)
+        # print("final::", final_output)
         return final_output
 
     def instance_guided_mask(self, embeddings, is_training, output_size=None):

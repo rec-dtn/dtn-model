@@ -49,7 +49,9 @@ tf.app.flags.DEFINE_integer("level_number", '2', "depth")
 tf.app.flags.DEFINE_integer("gdcn_layers", '2', "gdcn cross layer")
 tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,masknet', "depth")
 # tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,memonet', "depth")
+tf.app.flags.DEFINE_string("mask_default_params", '256,2,128',"agg_dim, num_mask_block, mask_block_ffn_size")
 tf.app.flags.DEFINE_string("gdcn_default_params", '16,2,3,16',"dim_embed,cross,num_hiddin,dim_hidden")
+tf.app.flags.DEFINE_string("mask_hidden_layer_size", '256,128',"mask hidden_layer_size")
 
 # log level
 logger = logging.getLogger()
@@ -495,8 +497,11 @@ def model_fn(features, labels, mode, params):
         return output
 
     def masknet_func(task_idx, input):
-        
-        return input 
+        agg_dim, num_mask_block, mask_block_ffn_size = list(map(int, FLAGS.mask_default_params.strip().split(',')))
+        hidden_layer_size = list(map(int, FLAGS.mask_hidden_layer_size.strip().split(',')))
+        model = MaskNet(agg_dim, num_mask_block, mask_block_ffn_size, hidden_layer_size)
+        output = model(input) 
+        return output
     
     def gatedcn_func(task_idx, input):
         # dim_embedding, num_cross, num_hidden, dim_hidden = list(map(int, FLAGS.gdcn_default_params.strip().split(',')))
@@ -546,6 +551,7 @@ def model_fn(features, labels, mode, params):
                     output = gatedcn_func(ii, input) 
                 if finet_type[idx] == 'memonet': 
                     output = memonet_func(ii, input) 
+                print("input check:: ", finet_type[idx], output )
                 task_finet.append(output)
             finet_lst.append(task_finet) 
         # finet_lst list(list(finet))
