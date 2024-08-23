@@ -104,45 +104,45 @@ class MemoNetModel(object):
             interaction_hash_embeddings, interact_field_weights = multi_hash_codebook_layer(
                 [top_inputs_list, top_embeddings])
             interact_embeddings.append(interaction_hash_embeddings)
-        if "subsethcnet" in self.interact_mode:
-            print("-----------------GetTopInputsAndEmbeddings------------------")
-            top_inputs_list, top_embeddings, top_field_indexes = tf_utils.get_top_inputs_embeddings(
-                feature_columns=self.feature_columns, features=self.features, embeddings=self.embeddings,
-                feature_importance_metric=self.interaction_hash_embedding_feature_metric,
-                feature_importance_top_k=self.interaction_hash_embedding_feature_top_k,
-                return_feature_index=True,
-            )
+        # if "subsethcnet" in self.interact_mode:
+        #     print("-----------------GetTopInputsAndEmbeddings------------------")
+        #     top_inputs_list, top_embeddings, top_field_indexes = tf_utils.get_top_inputs_embeddings(
+        #         feature_columns=self.feature_columns, features=self.features, embeddings=self.embeddings,
+        #         feature_importance_metric=self.interaction_hash_embedding_feature_metric,
+        #         feature_importance_top_k=self.interaction_hash_embedding_feature_top_k,
+        #         return_feature_index=True,
+        #     )
 
-            multi_hash_codebook_kif_layer = MultiHashCodebookKIFLayer(
-                name="multi_hash_codebook_kif_layer",
-                field_size=self.field_size,
-                top_field_indexes=top_field_indexes,
-                num_buckets=self.interaction_hash_embedding_buckets,
-                embedding_size=self.interaction_hash_embedding_size,
-                bucket_mode=self.interaction_hash_embedding_bucket_mode,
-                init_std=self.init_std,
-                l2_reg=self.embedding_l2_reg,
-                seed=self.seed,
-                num_hash=self.interaction_hash_embedding_num_hash,
-                merge_mode=self.interaction_hash_embedding_merge_mode,
-                output_dims=self.interaction_hash_output_dims,
-                params=self.params,
-                hash_float_precision=self.interaction_hash_embedding_float_precision,
-                interact_orders=self.interaction_hash_embedding_interact_orders,
-                interact_modes=self.interaction_hash_embedding_interact_modes,
-            )
+        #     multi_hash_codebook_kif_layer = MultiHashCodebookKIFLayer(
+        #         name="multi_hash_codebook_kif_layer",
+        #         field_size=self.field_size,
+        #         top_field_indexes=top_field_indexes,
+        #         num_buckets=self.interaction_hash_embedding_buckets,
+        #         embedding_size=self.interaction_hash_embedding_size,
+        #         bucket_mode=self.interaction_hash_embedding_bucket_mode,
+        #         init_std=self.init_std,
+        #         l2_reg=self.embedding_l2_reg,
+        #         seed=self.seed,
+        #         num_hash=self.interaction_hash_embedding_num_hash,
+        #         merge_mode=self.interaction_hash_embedding_merge_mode,
+        #         output_dims=self.interaction_hash_output_dims,
+        #         params=self.params,
+        #         hash_float_precision=self.interaction_hash_embedding_float_precision,
+        #         interact_orders=self.interaction_hash_embedding_interact_orders,
+        #         interact_modes=self.interaction_hash_embedding_interact_modes,
+        #     )
 
-            print("-----------------GetAllInputsAndEmbeddings------------------")
-            all_inputs_list, all_embeddings, all_feature_indexes = tf_utils.get_top_inputs_embeddings(
-                feature_columns=self.feature_columns, features=self.features, embeddings=self.embeddings,
-                feature_importance_metric=self.interaction_hash_embedding_feature_metric,
-                feature_importance_top_k=-1,
-                return_feature_index=True,
-            )
+        #     print("-----------------GetAllInputsAndEmbeddings------------------")
+        #     all_inputs_list, all_embeddings, all_feature_indexes = tf_utils.get_top_inputs_embeddings(
+        #         feature_columns=self.feature_columns, features=self.features, embeddings=self.embeddings,
+        #         feature_importance_metric=self.interaction_hash_embedding_feature_metric,
+        #         feature_importance_top_k=-1,
+        #         return_feature_index=True,
+        #     )
 
-            interaction_hash_embeddings, interact_field_weights = multi_hash_codebook_kif_layer(
-                [all_inputs_list, all_embeddings])
-            interact_embeddings.append(interaction_hash_embeddings)
+        #     interaction_hash_embeddings, interact_field_weights = multi_hash_codebook_kif_layer(
+        #         [all_inputs_list, all_embeddings])
+        #     interact_embeddings.append(interaction_hash_embeddings)
 
         interact_embeddings = [tf.keras.layers.Flatten()(embeddings) for embeddings in interact_embeddings]
         concat_embedding = Utils.concat_func(interact_embeddings, axis=1)
