@@ -27,6 +27,6 @@ echo "preprocessing data......"
 #                 --test_sample_size 10000
 python reader.py
 
-# # model training
-# cd ../../code/aliccp
-# python -u DTN.py
+# model training
+cd ../../code/aliccp
+python -u DTN.py

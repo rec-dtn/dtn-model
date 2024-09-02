@@ -10,8 +10,6 @@ import datetime
 import tensorflow as tf
 
 from models.gdcn_tf1 import GDCN_net
-# from models.gdcn import GDCNS
-from models.memonet.run_memonet import MemoNetRunner
 from models.memonet.memonet_model_tf1 import MemoNetModel_tf1
 from models.masknet import MaskNet 
 
@@ -49,7 +47,6 @@ tf.app.flags.DEFINE_integer("shared_num", '2', "shared finet_num")
 tf.app.flags.DEFINE_integer("level_number", '2', "depth")
 tf.app.flags.DEFINE_integer("gdcn_layers", '2', "gdcn cross layer")
 tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,memonet,gatedcn', "depth")
-# tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,memonet', "depth")
 tf.app.flags.DEFINE_string("mask_default_params", '256,2,128',"agg_dim, num_mask_block, mask_block_ffn_size")
 tf.app.flags.DEFINE_string("gdcn_default_params", '16,2,3,16',"dim_embed,cross,num_hiddin,dim_hidden")
 tf.app.flags.DEFINE_string("mask_hidden_layer_size", '256,256',"mask hidden_layer_size")
@@ -106,6 +103,18 @@ def load_index_len(vocabs_list):
 
 vocab_dict = load_index_len(vocabs_list)
 print("[INFO] vocab_dict:",vocab_dict)
+
+def replace_gradient(x):
+
+    @tf.custom_gradient
+    def stop_gradient(x):
+
+        def grad(upstream):
+            return upstream * 0.0
+
+        return x, grad
+
+    return stop_gradient(x)
 
 def decode_line(line):
     """
@@ -246,12 +255,6 @@ def model_fn(features, labels, mode, params):
     feat_101_emb = variable_length_feature_process(feat_101, vocab_file=feat_101_index_file_path,
                                                    emb_params=feat_101_wgts)  # None * E
     feat_101_emb = tf.reshape(feat_101_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
-    # print("####feat_101####")
-    # print(feat_101)
-    # print(feat_101_emb)
-    # feat_101 对齐 features
-    # feat_101_emb 对齐 emb 
-    # embeddings = b * feats * dim 
 
     feat_109_14 = features['feat_109_14']
     feat_109_14_vocab_len = vocab_dict['feat_109_14']
@@ -514,7 +517,6 @@ def model_fn(features, labels, mode, params):
     
     embedding = tf.layers.batch_normalization(embedding)
     embedding = tf.reshape(embedding, [-1, 23 * FLAGS.embedding_size])  # None * (F * E)
-    feature_num = 23 
 
     def skipnet_func(task_idx, input): 
         return input 
@@ -534,49 +536,28 @@ def model_fn(features, labels, mode, params):
         return output
     
     def gatedcn_func(task_idx, input):
-        # dim_embedding, num_cross, num_hidden, dim_hidden = list(map(int, FLAGS.gdcn_default_params.strip().split(',')))
-        # model = GDCNS(feature_num, FLAGS.embedding_size, dim_embedding, num_cross, num_hidden, dim_hidden)
-        # output = model(input)
-        # return output
         num_layers = FLAGS.gdcn_layers 
         model = GDCN_net(task_idx, num_layers, 256, input.get_shape().as_list())
         output = model(input) 
         return output 
 
     def memonet_func(task_idx, input, feat_input_list, feat_emb_list): 
-        # feat_101 对齐 features
-        # feat_101_emb 对齐 emb 
-        # embeddings = b * feats * dim 
         feature_columns = [] 
-        select_slot = [101, 121, 122, 124, 125, 126, 127, 128, 129, 205, 206, 207, 216, 301, 508, 509, 702]
+        select_slot = [101, 121, 122, 124, 125, 126, 127, 128, 129, 205, 206, 207, 216, 301, 508, 509, 702] # all sparse feature 
         select_str = ["feat_"+str(x) for x in select_slot] 
         feat_name_list = [ "feat_101", "feat_109_14", "feat_110_14", "feat_127_14", "feat_150_14", "feat_121", "feat_122",
         "feat_124", "feat_125", "feat_126", "feat_127", "feat_128", "feat_129", "feat_205", "feat_206",
         "feat_207", "feat_210", "feat_216", "feat_508", "feat_509", "feat_702", "feat_853", "feat_301"]
 
         for name, input, emb in zip(feat_name_list, feat_input_list, feat_emb_list): 
-            # feature_columns.append({"name":name, "input":input, "emb":emb}) 
             dimension = vocab_dict[name]
             if name in select_str: 
                 feature_columns.append(Feat(name.replace("feat_",""), input, emb, dimension))
         print("[INFO] check use slot: ", feature_columns)     
-        # model = MemoNetModel(feature_columns=)
         model = MemoNetModel_tf1(task_idx, feature_columns, input, feat_input_list, tf.concat(feat_emb_list, axis=1), FLAGS.embedding_size)
         output = model()
         return output
     
-        # feat_101 = features['feat_101']
-        # feat_101_vocab_len = vocab_dict['feat_101']
-        # feat_101_wgts = tf.get_variable(name='feat_101_wgts',
-        #                                 shape=[feat_101_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
-        #                                 initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
-        #                                 regularizer=l2_reg)
-        # common_wgts.append(feat_101_wgts)
-        # feat_101_emb = variable_length_feature_process(feat_101, vocab_file=feat_101_index_file_path,
-        #                                             emb_params=feat_101_wgts)  # None * E
-        # feat_101_emb = tf.reshape(feat_101_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
-
-
     def build_tower(x, first_dnn_size=128, second_dnn_size=64, activation_fn=tf.nn.relu):
         y_tower = tf.contrib.layers.fully_connected(inputs=x, num_outputs=first_dnn_size, activation_fn=activation_fn, \
                                                     weights_regularizer=tf.contrib.layers.l2_regularizer(
@@ -587,9 +568,6 @@ def model_fn(features, labels, mode, params):
                                                         FLAGS.l2_reg), )
         return y_tower
 
-    # def dtn_net(inputs): 
-    #     pass 
-    # meituan hinet dtn module 
     def dtn_net(inputs, is_last, level_name, finet_type = ["fullnet"] * 3, use_TSN = False): 
         print("####### start DTN ##########")
         # dim inputs = dim task
@@ -611,18 +589,16 @@ def model_fn(features, labels, mode, params):
                     output = gatedcn_func(ii, input) 
                 if finet_type[idx] == 'memonet': 
                     output = memonet_func(ii, input, feat_input_list, feat_emb_list) 
-                print("input check:: ", finet_type[idx], output )
                 task_finet.append(output)
             finet_lst.append(task_finet) 
-        # finet_lst list(list(finet))
-        print(finet_lst)
         tasks_finet_output = finet_lst[:task_num] 
         share_finet_output = finet_lst[task_num]
 
-        dtn_expe_output = [] 
+        dtn_fi_output = [] 
         dtn_gate_output = []
         pred_out = []
         pred_y = []
+        pred_ori = [] 
 
         for i, task in enumerate(task_name): 
             other_finet_lst = [finet for j, finet in enumerate(tasks_finet_output) if j!=i] 
@@ -630,13 +606,10 @@ def model_fn(features, labels, mode, params):
             for finets in other_finet_lst: 
                 if use_TSN: 
                     for j in range(i-1): 
-                        # for finet in finets: 
-                        # finet = finet * 
                         finets = [finet * pred_out[j] for finet in finets]
                 other_finet.extend(finets)
             iself_finet = tasks_finet_output[i]
             share_finet = share_finet_output 
-
 
             # other 
             gate_lst = []
@@ -645,6 +618,7 @@ def model_fn(features, labels, mode, params):
                                                                 activation_fn=tf.nn.relu, \
                                                                 weights_regularizer=l2_reg)
                 gate_lst.append(gate)
+            
             # share 
             for j, finet in enumerate(share_finet): 
                 gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=1,
@@ -674,12 +648,18 @@ def model_fn(features, labels, mode, params):
             gate_weights = tf.concat([gate_weights_other_share, gate_weights_iself], axis = 1) 
             weighted_finet = tf.reduce_sum(tf.math.multiply(dtn_finet, gate_weights), axis = -2)
 
-            dtn_expe_output.append(weighted_finet) 
+            dtn_fi_output.append(weighted_finet) 
             dtn_gate_output.append(gate_weights) 
-        # return dtn_expe_output, dtn_gate_output 
 
+            print("output_gate::")
+            print(dtn_fi_output)
             # cxr
-            y_cxr = tf.concat(dtn_expe_output[0], axis=-1)
+            y_cxr_ori = tf.concat(dtn_fi_output[i], axis=-1)
+            pred_ori.append(y_cxr_ori)
+            y_cxr = y_cxr_ori
+            if i == 1: 
+                for idx in range(i): 
+                    y_cxr = tf.concat([y_cxr, replace_gradient(tf.math.multiply(pred_ori[idx], tf.expand_dims(pred_out[idx], axis = 1))) ], axis = -1 )
             y_cxr_vec = build_tower(y_cxr)
             y_cxr = tf.contrib.layers.fully_connected(inputs=tf.concat([y_cxr_vec], axis=-1), num_outputs=1,
                                                     activation_fn=None, \
@@ -691,22 +671,10 @@ def model_fn(features, labels, mode, params):
             pred_y.append(y_cxr)
         return pred_out, pred_y
 
-    # task_inputs = []
-    # for i in range(FLAGS.task_num + 1):
-    #     task_inputs.append(embedding)
-
-    # for i in range(FLAGS.level_number):
-    #     if i == FLAGS.level_number - 1:  # final layer
-    #         task_outputs = ple_net(task_inputs, True, 'final-layer')
-    #     else:
-    #         task_inputs = ple_net(task_inputs, False, 'not-final-layer')
-
     task_inputs = [] 
     for i in range(FLAGS.task_num + 1): 
         task_inputs.append(embedding) 
     
-    # task_inputs = dtn_net(task_inputs, None, 'None', list(FLAGS.feature_interaction_name.strip().split(',')))
-    # task_inputs = [[task_inputs[0]], [task_inputs[1]]] # align 
     pred_out, pred_y = dtn_net(task_inputs, None, 'None', list(FLAGS.feature_interaction_name.strip().split(',')))
     y_ctr_prediction, y_cvr_prediction = pred_out 
     y_ctr, y_cvr = pred_y 
