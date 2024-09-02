@@ -12,6 +12,7 @@ import tensorflow as tf
 from models.gdcn_tf1 import GDCN_net
 # from models.gdcn import GDCNS
 from models.memonet.run_memonet import MemoNetRunner
+from models.memonet.memonet_model_tf1 import MemoNetModel_tf1
 from models.masknet import MaskNet 
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '2,3'
@@ -47,11 +48,11 @@ tf.app.flags.DEFINE_string("exp_per_task", '3,3', "finet_num per task")
 tf.app.flags.DEFINE_integer("shared_num", '2', "shared finet_num")
 tf.app.flags.DEFINE_integer("level_number", '2', "depth")
 tf.app.flags.DEFINE_integer("gdcn_layers", '2', "gdcn cross layer")
-tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,masknet', "depth")
+tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,memonet,gatedcn', "depth")
 # tf.app.flags.DEFINE_string("feature_interaction_name", 'masknet,gatedcn,memonet', "depth")
 tf.app.flags.DEFINE_string("mask_default_params", '256,2,128',"agg_dim, num_mask_block, mask_block_ffn_size")
 tf.app.flags.DEFINE_string("gdcn_default_params", '16,2,3,16',"dim_embed,cross,num_hiddin,dim_hidden")
-tf.app.flags.DEFINE_string("mask_hidden_layer_size", '256,128',"mask hidden_layer_size")
+tf.app.flags.DEFINE_string("mask_hidden_layer_size", '256,256',"mask hidden_layer_size")
 
 # log level
 logger = logging.getLogger()
@@ -91,6 +92,7 @@ vocabs_list = [feat_101_index_file_path,feat_109_14_index_file_path,feat_110_14_
                 feat_216_index_file_path,feat_508_index_file_path,feat_509_index_file_path,feat_702_index_file_path,feat_853_index_file_path,feat_301_index_file_path
                ]
 
+memonet_slot = [101, 121, 122, 124, 125, 126, 127, 128, 129, 205, 206, 207, 216, 301, 508, 509, 702]
 
 def load_index_len(vocabs_list):
     vocab_dict = {}
@@ -205,6 +207,7 @@ def variable_length_feature_process(var_len_feat, vocab_file, emb_params, sep='#
     :param combiner:
     :return:
     """
+    # 这个函数应该是把list 序列特征变成 一个特征 
     feat_splited = tf.string_split(var_len_feat, sep=sep, skip_empty=False)
     feat_table = tf.contrib.lookup.index_table_from_file(
         vocabulary_file=vocab_file, num_oov_buckets=1, default_value=default_value
@@ -216,6 +219,13 @@ def variable_length_feature_process(var_len_feat, vocab_file, emb_params, sep='#
     # emb_params = tf.Variable(tf.truncated_normal([vocab_len + 1, FLAGS.embedding_size]))
     return tf.nn.embedding_lookup_sparse(emb_params, sp_ids=sp_ids, sp_weights=sp_weights, combiner=combiner)
 
+class Feat: 
+    def __init__(self, name, input, emb, dimension):
+        self.name = name 
+        self.input = input 
+        self.emb = emb 
+        self.dimension = dimension
+        return 
 
 def model_fn(features, labels, mode, params):
     """build Estimator model"""
@@ -236,6 +246,12 @@ def model_fn(features, labels, mode, params):
     feat_101_emb = variable_length_feature_process(feat_101, vocab_file=feat_101_index_file_path,
                                                    emb_params=feat_101_wgts)  # None * E
     feat_101_emb = tf.reshape(feat_101_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
+    # print("####feat_101####")
+    # print(feat_101)
+    # print(feat_101_emb)
+    # feat_101 对齐 features
+    # feat_101_emb 对齐 emb 
+    # embeddings = b * feats * dim 
 
     feat_109_14 = features['feat_109_14']
     feat_109_14_vocab_len = vocab_dict['feat_109_14']
@@ -485,9 +501,23 @@ def model_fn(features, labels, mode, params):
          feat_207_emb, feat_210_emb, feat_216_emb, feat_508_emb, feat_509_emb, feat_702_emb, feat_853_emb,
          feat_301_emb], axis=-1)  # None * 1 * (23 * E)
 
+    feat_input_list = [     feat_101, feat_109_14, feat_110_14, feat_127_14, feat_150_14, feat_121, feat_122,
+        feat_124, feat_125, feat_126, feat_127, feat_128, feat_129, feat_205, feat_206,
+        feat_207, feat_210, feat_216, feat_508, feat_509, feat_702, feat_853,
+        feat_301]
+
+    feat_emb_list = [ feat_101_emb, feat_109_14_emb, feat_110_14_emb, feat_127_14_emb, feat_150_14_emb, feat_121_emb, feat_122_emb,
+        feat_124_emb, feat_125_emb, feat_126_emb, feat_127_emb, feat_128_emb, feat_129_emb, feat_205_emb, feat_206_emb,
+        feat_207_emb, feat_210_emb, feat_216_emb, feat_508_emb, feat_509_emb, feat_702_emb, feat_853_emb,
+        feat_301_emb]
+    
+    
     embedding = tf.layers.batch_normalization(embedding)
     embedding = tf.reshape(embedding, [-1, 23 * FLAGS.embedding_size])  # None * (F * E)
     feature_num = 23 
+
+    def skipnet_func(task_idx, input): 
+        return input 
 
     def fullnet_func(task_idx, input):
         output = input 
@@ -509,15 +539,43 @@ def model_fn(features, labels, mode, params):
         # output = model(input)
         # return output
         num_layers = FLAGS.gdcn_layers 
-        model = GDCN_net(task_idx, num_layers, input.get_shape().as_list())
+        model = GDCN_net(task_idx, num_layers, 256, input.get_shape().as_list())
         output = model(input) 
         return output 
 
+    def memonet_func(task_idx, input, feat_input_list, feat_emb_list): 
+        # feat_101 对齐 features
+        # feat_101_emb 对齐 emb 
+        # embeddings = b * feats * dim 
+        feature_columns = [] 
+        select_slot = [101, 121, 122, 124, 125, 126, 127, 128, 129, 205, 206, 207, 216, 301, 508, 509, 702]
+        select_str = ["feat_"+str(x) for x in select_slot] 
+        feat_name_list = [ "feat_101", "feat_109_14", "feat_110_14", "feat_127_14", "feat_150_14", "feat_121", "feat_122",
+        "feat_124", "feat_125", "feat_126", "feat_127", "feat_128", "feat_129", "feat_205", "feat_206",
+        "feat_207", "feat_210", "feat_216", "feat_508", "feat_509", "feat_702", "feat_853", "feat_301"]
 
-    def memonet_func(task_idx, input):
-        runner = MemoNetRunner()
-        _, concat_embedding = runner.create_model()
-        return concat_embedding
+        for name, input, emb in zip(feat_name_list, feat_input_list, feat_emb_list): 
+            # feature_columns.append({"name":name, "input":input, "emb":emb}) 
+            dimension = vocab_dict[name]
+            if name in select_str: 
+                feature_columns.append(Feat(name.replace("feat_",""), input, emb, dimension))
+        print("[INFO] check use slot: ", feature_columns)     
+        # model = MemoNetModel(feature_columns=)
+        model = MemoNetModel_tf1(task_idx, feature_columns, input, feat_input_list, tf.concat(feat_emb_list, axis=1), FLAGS.embedding_size)
+        output = model()
+        return output
+    
+        # feat_101 = features['feat_101']
+        # feat_101_vocab_len = vocab_dict['feat_101']
+        # feat_101_wgts = tf.get_variable(name='feat_101_wgts',
+        #                                 shape=[feat_101_vocab_len, FLAGS.embedding_size], dtype=tf.float32,
+        #                                 initializer=tf.random_normal_initializer(stddev=(2 / 512) ** 0.5),
+        #                                 regularizer=l2_reg)
+        # common_wgts.append(feat_101_wgts)
+        # feat_101_emb = variable_length_feature_process(feat_101, vocab_file=feat_101_index_file_path,
+        #                                             emb_params=feat_101_wgts)  # None * E
+        # feat_101_emb = tf.reshape(feat_101_emb, shape=[-1, 1, FLAGS.embedding_size])  # None * 1 * E
+
 
     def build_tower(x, first_dnn_size=128, second_dnn_size=64, activation_fn=tf.nn.relu):
         y_tower = tf.contrib.layers.fully_connected(inputs=x, num_outputs=first_dnn_size, activation_fn=activation_fn, \
@@ -543,6 +601,8 @@ def model_fn(features, labels, mode, params):
         for ii, input in enumerate(inputs):
             task_finet = [] 
             for idx in range(len(finet_type)):  
+                if finet_type[idx] == "skipnet": 
+                    output = skipnet_func(ii, input) 
                 if finet_type[idx] == "fullnet": 
                     output = fullnet_func(ii, input) 
                 if finet_type[idx] == "masknet": 
@@ -550,7 +610,7 @@ def model_fn(features, labels, mode, params):
                 if finet_type[idx] == "gatedcn": 
                     output = gatedcn_func(ii, input) 
                 if finet_type[idx] == 'memonet': 
-                    output = memonet_func(ii, input) 
+                    output = memonet_func(ii, input, feat_input_list, feat_emb_list) 
                 print("input check:: ", finet_type[idx], output )
                 task_finet.append(output)
             finet_lst.append(task_finet) 

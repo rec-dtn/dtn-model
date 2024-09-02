@@ -67,6 +67,7 @@ class VarLenSparseFeat(namedtuple('VarLenFeat', ['name', 'dimension', 'maxlen', 
 
 
 def build_input_features(feature_columns, mask_zero=True, prefix=''):
+    # 确定input feature 的维度和类型 
     input_features = OrderedDict()
     for fc in feature_columns:
         if isinstance(fc, SparseFeat):

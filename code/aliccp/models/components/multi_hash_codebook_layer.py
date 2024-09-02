@@ -79,8 +79,10 @@ class MultiHashCodebookLayer(Layer):
         self.outer_interact_mode = self.params.get("interact_mode", None)
         return
     
-    def build(self, input_shape):
-        self.field_size = len(input_shape[0])
+    def __build__(self, field_size ):
+        print("To Build:", field_size)
+        # self.field_size = len(input_shape[0])
+        self.field_size = field_size 
         self.interact_indexes = [self.get_field_interaction_idx(order_n, self.field_size)
                                  for order_n in self.interact_orders]
         
@@ -132,9 +134,9 @@ class MultiHashCodebookLayer(Layer):
         
         for i in range(self.field_size):
             self.field_tokens.append(tf.constant(str(i), dtype=tf.string, shape=(1, 1))) # 用来防止名字重复的string 
-        super(MultiHashCodebookLayer, self).build(input_shape)  # Be sure to call this somewhere!
+        # super(MultiHashCodebookLayer, self).__build__(input_shape)  # Be sure to call this somewhere!
     
-    def call(self, inputs, training=None, **kwargs):
+    def __call__(self, inputs, training=None, **kwargs):
         """
         :param placeholder_inputs: (?, length)
         :param origin_embeddings
@@ -143,20 +145,26 @@ class MultiHashCodebookLayer(Layer):
         :return:
         """
         placeholder_inputs, origin_embeddings = inputs[0], inputs[1]
+        self.__build__(origin_embeddings.get_shape()[1]) 
         input_list = []
         batch_size = tf.shape(placeholder_inputs[0])[0]
+        print("batch_size", batch_size)
+        print(placeholder_inputs)
+        print(len(placeholder_inputs), self.field_size)
         # 1. Multi-Hash Addressing
         # 1.1. Obtain all cross features
         for i in range(self.field_size):
             field_token = tf.tile(self.field_tokens[i], [batch_size, 1])
+            print(field_token)
             if placeholder_inputs[i].dtype == tf.float32 or placeholder_inputs[i].dtype == tf.float16 or \
                     placeholder_inputs[i].dtype == tf.float64:
                 item = tf.strings.as_string(placeholder_inputs[i], precision=self.hash_float_precision)
             else:
                 item = tf.strings.as_string(placeholder_inputs[i], )
             # Process VarLenSparse Feature
-            if item.shape[-1].value > 1:
-                item = tf.expand_dims(tf.strings.reduce_join(item, axis=-1, separator="-"), axis=1)
+            # if item.shape[-1].value > 1:
+            #     item = tf.expand_dims(tf.strings.reduce_join(item, axis=-1, separator="-"), axis=1)
+            print("check join", field_token, item)
             field_item = tf.strings.reduce_join([field_token, item], axis=0, separator="_")
             input_list.append(field_item)
         

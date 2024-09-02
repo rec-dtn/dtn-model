@@ -20,16 +20,20 @@ from models.components.multi_hash_codebook_layer import MultiHashCodebookLayer
 from models.components.multi_hash_codebook_kif_layer import MultiHashCodebookKIFLayer
 
 class MemoNetModel_tf1(Model):
-    def __init__(self, task_idx, feature_columns, params, embedding_size, embedding_l2_reg=0.0, embedding_dropout=0,
-                 dnn_hidden_units=(), dnn_activation='relu', dnn_l2_reg=0.0, dnn_use_bn=False,
-                 dnn_dropout=0.0, init_std=0.01, task='binary', seed=2021):
+    def __init__(self, task_idx, feature_columns, input, feat_input_list, feat_emb_list, embedding_size, params = dict(), 
+                output_dim = 256, embedding_l2_reg=0.0, embedding_dropout=0,
+                dnn_hidden_units=(), dnn_activation='relu', dnn_l2_reg=0.0, dnn_use_bn=False,
+                dnn_dropout=0.0, init_std=0.01, task='binary', seed=2021):
         super(MemoNetModel_tf1, self).__init__()
-
-        self.feature_columns = feature_columns
-        self.field_size = len(feature_columns)
+        self.task_idx = task_idx
+        self.feature_columns = feature_columns 
+        self.feat_input_list = feat_input_list 
+        self.feat_emb_list = feat_emb_list
+        self.field_size = len(feat_input_list) 
         self.params = params
 
         self.embedding_size = embedding_size
+        self.output_dim = output_dim
         self.embedding_l2_reg = embedding_l2_reg
         self.embedding_dropout = embedding_dropout
 
@@ -56,7 +60,8 @@ class MemoNetModel_tf1(Model):
         self.interaction_hash_embedding_feature_metric = self.params.get("interaction_hash_embedding_feature_metric", "dimension")
         self.interaction_hash_embedding_feature_top_k = self.params.get("interaction_hash_embedding_feature_top_k", -1)
 
-    def  __build__(self, input_shape):
+    def  __build__(self):
+        print("start buildding")
         # Initialize layers here
         self.multi_hash_codebook_layer = MultiHashCodebookLayer(
             name="multi_hash_codebook_layer",
@@ -82,11 +87,12 @@ class MemoNetModel_tf1(Model):
         # self.final_dense = Dense(1, use_bias=True, activation=None)
         # self.prediction_layer = PredictionLayer(self.task, use_bias=False)
     
-    def __call__(self, input, feat_input_list, feat_emb_list, training=False):
+    def __call__(self):
+        self.__build__()
         # features = build_input_features(self.feature_columns)
         # embeddings = self.get_embeddings(features)
-        features = feat_input_list 
-        embeddings = feat_emb_list 
+        features = self.feat_input_list 
+        embeddings = self.feat_emb_list 
         interact_embeddings = [embeddings]
         
         if "fullhcnet" in self.interact_mode:
@@ -94,12 +100,19 @@ class MemoNetModel_tf1(Model):
                 feature_columns=self.feature_columns, features=features, embeddings=embeddings,
                 feature_importance_metric=self.interaction_hash_embedding_feature_metric,
                 feature_importance_top_k=self.interaction_hash_embedding_feature_top_k)
-
+            print("before codebook", len(top_inputs_list))
+            top_inputs_list = [tf.strings.to_number(x, out_type=tf.float32) for x in top_inputs_list]
+            print(top_inputs_list, top_embeddings)
             interaction_hash_embeddings, interact_field_weights = self.multi_hash_codebook_layer(
                 [top_inputs_list, top_embeddings])
             interact_embeddings.append(interaction_hash_embeddings)
 
         interact_embeddings = [Flatten()(emb) for emb in interact_embeddings]
         concat_embedding = Utils.concat_func(interact_embeddings, axis=1)
-        return concat_embedding 
+        final_output = tf.layers.dense(concat_embedding, self.output_dim,
+                use_bias=True,
+                # kernel_regularizer=tf.contrib.layers.l2_regularizer(l2_reg),
+                kernel_initializer=tf.glorot_normal_initializer(),
+                name=f'{self.task_idx}_dense')
+        return final_output 
 
