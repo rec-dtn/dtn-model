@@ -53,6 +53,13 @@ have significantly different importance across different tasks in MTL. To addres
 - Clone this repo
 
 ### [Ali-CCP: Alibaba Click and Conversion Prediction](https://tianchi.aliyun.com/dataset/dataDetail?dataId=408)
+Running sample trainning data 
+```bash 
+code code/aliccp 
+python3 DTN.py 
+``` 
+
+Running Fully trainning data 
 ```bash
 cd code/aliccp
 sh run.sh
