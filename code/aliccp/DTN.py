@@ -751,9 +751,9 @@ def main(_):
     print(FLAGS.data_dir)
     tr_files = glob.glob("%s/train_data/train_data.csv" % FLAGS.data_dir)
     print("tr_files:", tr_files)
-    va_files = glob.glob("%s/train_data/train_data.csv" % FLAGS.data_dir)
+    va_files = glob.glob("%s/test_data/test_data.csv" % FLAGS.data_dir)
     print("va_files:", va_files)
-    te_files = glob.glob("%s/train_data/train_data.csv" % FLAGS.data_dir)
+    te_files = glob.glob("%s/test_data/test_data.csv" % FLAGS.data_dir)
     print("te_files:", te_files)
 
     if FLAGS.clear_existing_model:

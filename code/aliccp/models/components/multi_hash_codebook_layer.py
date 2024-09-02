@@ -111,7 +111,6 @@ class MultiHashCodebookLayer(Layer):
                                                    embeddings_regularizer=l2(self.l2_reg))
                                          for _ in range(num_embeddings)])
         # 根据hash 值得到embedding 
-        
         # Linear Memory Restoring (LMR) and Attentive Memory Restoring (AMR)
         if "senetorigin" in self.merge_mode:
             self.senet_layer = [SENETLayer(
