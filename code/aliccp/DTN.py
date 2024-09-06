@@ -40,6 +40,7 @@ tf.app.flags.DEFINE_string("pos_weights", "200,3000", "positive sample weight")
 tf.app.flags.DEFINE_integer("finets_num", 8, "finet num")
 tf.app.flags.DEFINE_integer("task_num", 2, "task num")
 tf.app.flags.DEFINE_string("task_name", "ctr,cvr", "task name")
+tf.app.flags.DEFINE_string("task_TSN","cvr:ctr", "TSN logic. Divide by `,`. For example cvr:cart,cvr:click,cart:click")
 tf.app.flags.DEFINE_string("vocab_index", '../../data/aliccp/vocab/', "feature index table")
 tf.app.flags.DEFINE_string("loss_weights", '1.0,1.0', "loss weight")
 tf.app.flags.DEFINE_string("exp_per_task", '3,3', "finet_num per task")
@@ -568,11 +569,12 @@ def model_fn(features, labels, mode, params):
                                                         FLAGS.l2_reg), )
         return y_tower
 
-    def dtn_net(inputs, is_last, level_name, finet_type = ["fullnet"] * 3, use_TSN = False): 
+    def dtn_net(inputs, is_last, level_name, finet_type = ["fullnet"] * 3, use_TSN = True): 
         print("####### start DTN ##########")
         # dim inputs = dim task
         task_num = FLAGS.task_num
         task_name = list(FLAGS.task_name.strip().split(','))
+        task_dict = {name:idx for idx, name in enumerate(task_name)}
         assert len(task_name) == task_num
         assert len(inputs) == task_num + 1
         finet_lst = [] 
@@ -599,14 +601,21 @@ def model_fn(features, labels, mode, params):
         pred_out = []
         pred_y = []
         pred_ori = [] 
-
+        tsn_dict = {} 
+        if use_TSN: 
+            task_tsn = FLAGS.task_TSN.strip().split(',') 
+            for tsn_pair in task_tsn: 
+                fir, sec = tsn_pair.split(":") 
+                assert (fir in task_name) and (sec in task_name), "Error task name" + fir + "  " + sec 
+                if task_dict[fir] not in tsn_dict: 
+                    tsn_dict[task_dict[fir]] = [] 
+                tsn_dict[task_dict[fir]].append(task_dict[sec])
         for i, task in enumerate(task_name): 
             other_finet_lst = [finet for j, finet in enumerate(tasks_finet_output) if j!=i] 
             other_finet = []
-            for finets in other_finet_lst: 
-                if use_TSN: 
-                    for j in range(i-1): 
-                        finets = [finet * pred_out[j] for finet in finets]
+            for j, finets in enumerate(other_finet_lst): 
+                if j in tsn_dict.get(i, []): 
+                    finets = [finet * replace_gradient(tf.expand_dims(pred_out[j], 1)) for finet in finets] 
                 other_finet.extend(finets)
             iself_finet = tasks_finet_output[i]
             share_finet = share_finet_output 
@@ -631,7 +640,7 @@ def model_fn(features, labels, mode, params):
             gate_weights_other_share = tf.expand_dims(gate_output, axis=-1)
             dtn_finet_other_share = tf.stack(other_finet + share_finet, axis = 1) 
 
-            # iself 
+            # i-self 
             gate_lst = []
             for j, finet in enumerate(iself_finet): 
                 gate = tf.contrib.layers.fully_connected(inputs=finet, num_outputs=1,
@@ -651,15 +660,8 @@ def model_fn(features, labels, mode, params):
             dtn_fi_output.append(weighted_finet) 
             dtn_gate_output.append(gate_weights) 
 
-            print("output_gate::")
-            print(dtn_fi_output)
             # cxr
-            y_cxr_ori = tf.concat(dtn_fi_output[i], axis=-1)
-            pred_ori.append(y_cxr_ori)
-            y_cxr = y_cxr_ori
-            if i == 1: 
-                for idx in range(i): 
-                    y_cxr = tf.concat([y_cxr, replace_gradient(tf.math.multiply(pred_ori[idx], tf.expand_dims(pred_out[idx], axis = 1))) ], axis = -1 )
+            y_cxr = tf.concat(dtn_fi_output[i], axis=-1)
             y_cxr_vec = build_tower(y_cxr)
             y_cxr = tf.contrib.layers.fully_connected(inputs=tf.concat([y_cxr_vec], axis=-1), num_outputs=1,
                                                     activation_fn=None, \

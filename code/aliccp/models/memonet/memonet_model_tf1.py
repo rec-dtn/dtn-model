@@ -100,9 +100,7 @@ class MemoNetModel_tf1(Model):
                 feature_columns=self.feature_columns, features=features, embeddings=embeddings,
                 feature_importance_metric=self.interaction_hash_embedding_feature_metric,
                 feature_importance_top_k=self.interaction_hash_embedding_feature_top_k)
-            print("before codebook", len(top_inputs_list))
             top_inputs_list = [tf.strings.to_number(x, out_type=tf.float32) for x in top_inputs_list]
-            print(top_inputs_list, top_embeddings)
             interaction_hash_embeddings, interact_field_weights = self.multi_hash_codebook_layer(
                 [top_inputs_list, top_embeddings])
             interact_embeddings.append(interaction_hash_embeddings)

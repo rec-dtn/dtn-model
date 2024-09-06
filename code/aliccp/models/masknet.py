@@ -180,7 +180,6 @@ class MaskNet:
         final_output = self.dnn_layer(tf.concat(output_list, axis=-1), self.hidden_layer_size, activation=tf.nn.relu,
                                       is_training=is_training)
         # final_output = tf.concat(output_list, axis=-1)
-        # print("final::", final_output)
         return final_output
 
     def instance_guided_mask(self, embeddings, is_training, output_size=None):
