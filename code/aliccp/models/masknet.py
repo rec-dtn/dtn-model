@@ -1,9 +1,9 @@
 """
-论文：MaskNet: Introducing Feature-Wise Multiplication to CTR Ranking Models by Instance-Guided Mask
+Paper：MaskNet: Introducing Feature-Wise Multiplication to CTR Ranking Models by Instance-Guided Mask
 
-地址：https://arxiv.org/pdf/2102.0761
+Website：https://arxiv.org/pdf/2102.0761
 
-代码：https://github.com/QunBB/DeepLearning/blob/main/recommendation/rank/masknet.py
+Code：https://github.com/QunBB/DeepLearning/blob/main/recommendation/rank/masknet.py
 """
 import tensorflow as tf
 from typing import List, Union, Optional
@@ -106,11 +106,11 @@ class MaskNet:
                  ):
         """
 
-        :param agg_dim: Instance-Guided Mask中Aggregation模块的输出维度
-        :param num_mask_block: 串行结构中MaskBlock的层数 or 并行结构中MaskBlock的数量
+        :param agg_dim: Instance-Guided Mask output dim of Aggregation module 
+        :param num_mask_block: serail MaskBlock layer num or parallel MaskBlock count
         :param mask_block_ffn_size: 每一层MaskBlock的输出维度
-        :param masknet_type: serial(串行)或parallel(并行)
-        :param hidden_layer_size: 并行结构中每一层隐藏层的输出维度
+        :param masknet_type: serial or parallel
+        :param hidden_layer_size: parallel each hidden layer output dimension 
         :param dropout:
         :param l2_reg:
         """
@@ -161,7 +161,7 @@ class MaskNet:
         return output
 
     def serial_model(self, embeddings, ln_embeddings, is_training):
-        """串行MaskNet"""
+        """Serial MaskNet"""
         output = ln_embeddings
         for i in range(self.num_mask_block):
             mask = self.instance_guided_mask(embeddings, is_training, output_size=output.shape.as_list()[-1])
@@ -170,7 +170,7 @@ class MaskNet:
         return output
 
     def parallel_model(self, embeddings, ln_embeddings, is_training):
-        """并行MaskNet"""
+        """Parallel MaskNet"""
         output_list = []
         for i in range(self.num_mask_block):
             mask = self.instance_guided_mask(embeddings, is_training)

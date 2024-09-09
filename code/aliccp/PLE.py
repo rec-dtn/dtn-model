@@ -100,12 +100,12 @@ def decode_line(line):
     :return:
     """
     columns = tf.string_split([line], sep=',', skip_empty=False)
-    # label解析 CTR  CVR
+    # label CTR  CVR
     labels = tf.string_to_number(columns.values[1: 3], out_type=tf.float32)
 
-    # 所有特征域
+    # All features 
     # 101  109_14 110_14 127_14 150_14 121 122 124 125 126 127 128 129 205 206 207 210 216 508 509 702 853 301
-    # 特征解析
+    # Feature Process 
     feat_101 = tf.string_split([columns.values[3]], sep=':', skip_empty=False).values[1]
     feat_109_14 = tf.string_split([columns.values[4]], sep=':', skip_empty=False).values[1]
     feat_110_14 = tf.string_split([columns.values[5]], sep=':', skip_empty=False).values[1]
@@ -209,10 +209,10 @@ def model_fn(features, labels, mode, params):
     # ------hyperparameters----
     l2_rate = FLAGS.l2_reg
 
-    # 权重参数
-    common_wgts = []  # 普通参数
+    # Weight Parameters 
+    common_wgts = []  # Common Parameters 
     l2_reg = tf.contrib.layers.l2_regularizer(l2_rate)
-    # ------获取特征输入-------
+    # ------Get Feature Inputs -------
     feat_101 = features['feat_101']
     feat_101_vocab_len = vocab_dict['feat_101']
     feat_101_wgts = tf.get_variable(name='feat_101_wgts',
@@ -588,7 +588,7 @@ def model_fn(features, labels, mode, params):
     targets.append(label_ctr)
     targets.append(label_cvr)
 
-    # 预测结果导出格式设置
+    # Prediction Results Export Format Settings
     predictions = {
         "prob": 0.995 * y_ctr_prediction + 0.005 * y_cvr_prediction,
         "click": y_ctr,

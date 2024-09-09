@@ -112,10 +112,6 @@ class BaseModel(object):
         return
     
     def create_model(self):
-        """
-        由子类创建具体的keras.model
-        :return:
-        """
         raise NotImplementedError()
     
     def create_checkpoint_callback(self, save_weights_only=True, period=1):

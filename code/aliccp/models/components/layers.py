@@ -83,13 +83,13 @@ class StrongHash(Layer):
                 hash_x = tf.string_to_hash_bucket_fast(x, num_buckets, name=None)  # weak hash
         except:
             raise Exception("StrongHash Failed. Inputs: {}, NumBuckets: {}".format(x, num_buckets))
-            # strong hash 在稳定性上更好，带来的代价是时间多了四倍 
+            # strong hash 
         if self.mask_zero:
             mask_1 = tf.cast(tf.not_equal(x, "0"), 'int64')
             mask_2 = tf.cast(tf.not_equal(x, "0.0"), 'int64')
             mask = mask_1 * mask_2
             hash_x = (hash_x + 1) * mask
-            # 如果值是0或0.0，则hash 到0， 否则随机hash 到一个分桶
+            # if value is 0 or 0.0，hash to 0， else hash to a random bucket 
         return hash_x
 
     def compute_mask(self, inputs, mask):

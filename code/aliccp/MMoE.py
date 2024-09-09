@@ -538,14 +538,14 @@ def model_fn(features, labels, mode, params):
     export_outputs = {
         tf.saved_model.signature_constants.DEFAULT_SERVING_SIGNATURE_DEF_KEY: tf.estimator.export.PredictOutput(
             predictions)}
-    # Estimator预测模式
+    # Estimator Mode
     if mode == tf.estimator.ModeKeys.PREDICT:
         return tf.estimator.EstimatorSpec(
             mode=mode,
             predictions=predictions,
             export_outputs=export_outputs)
 
-    # ------拆分标签，构建损失------
+    # ------Splitting Labels & Constructing Loss------
     labels = tf.split(labels, num_or_size_splits=2, axis=-1)
     label_ctr = tf.reshape(labels[0], shape=[-1, ])
     label_cvr = tf.reshape(labels[1], shape=[-1, ])

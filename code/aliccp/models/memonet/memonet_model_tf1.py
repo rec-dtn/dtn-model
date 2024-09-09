@@ -1,9 +1,5 @@
 """
-论文：
-
-地址：
-
-代码：https://github.com/ptzhangAlg/RecAlg/blob/master/README.md
+Code: https://github.com/ptzhangAlg/RecAlg/blob/master/README.md
 """
 # -*- coding:utf-8 -*-
 import copy

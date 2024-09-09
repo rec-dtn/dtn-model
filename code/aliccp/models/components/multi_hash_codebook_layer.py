@@ -100,7 +100,7 @@ class MultiHashCodebookLayer(Layer):
             num_embeddings = 1
         elif self.bucket_mode == "hash-private":
             num_embeddings = self.num_hash
-        # 如果是共享的，则只有一个embedding ，如果是private 则每个hash 有一个embedding 
+        # if shared，then only one embedding, else if private then each hash has an embedding 
         for _ in self.interact_orders: # 几阶交叉特征 
             self.embedding_layer.append([Embedding(input_dim=self.num_buckets, output_dim=self.embedding_size,
                                                    embeddings_initializer=get_embedding_initializer(
@@ -110,7 +110,7 @@ class MultiHashCodebookLayer(Layer):
                                                        seed=self.seed),
                                                    embeddings_regularizer=l2(self.l2_reg))
                                          for _ in range(num_embeddings)])
-        # 根据hash 值得到embedding 
+        # hash get embedding 
         # Linear Memory Restoring (LMR) and Attentive Memory Restoring (AMR)
         if "senetorigin" in self.merge_mode:
             self.senet_layer = [SENETLayer(
@@ -118,7 +118,7 @@ class MultiHashCodebookLayer(Layer):
                 senet_activation="none", seed=self.seed,
                 output_weights=True, output_field_size=self.num_hash, output_embedding_size=self.embedding_size
             ) for _ in self.interact_orders]
-            # 对得到的embedding 进行 fibinet 压缩 
+            # embedding fibinet compress 
         self.transform_layer = tf.keras.layers.Dense(self.output_dims, activation=None,
                                                      use_bias=False, name="hash_merge_final_transform")
         
@@ -132,7 +132,7 @@ class MultiHashCodebookLayer(Layer):
             self.interact_mode_layers.append(interact_mode_layer)
         
         for i in range(self.field_size):
-            self.field_tokens.append(tf.constant(str(i), dtype=tf.string, shape=(1, 1))) # 用来防止名字重复的string 
+            self.field_tokens.append(tf.constant(str(i), dtype=tf.string, shape=(1, 1))) # string for different name 
         # super(MultiHashCodebookLayer, self).__build__(input_shape)  # Be sure to call this somewhere!
     
     def __call__(self, inputs, training=None, **kwargs):
@@ -289,7 +289,7 @@ class MultiHashCodebookLayer(Layer):
     @staticmethod
     def get_field_interaction_idx(order_n, field_size):
         # 2-order: [(1,2), (1,3), ..., (1, N), ..., (N-1,N)]
-        # 得到 order-n list  并且知道每个特征应该到哪个slot 里。 
+        # get  order-n list  and get the feature for hash 
         field_interaction_idx = [[] for _ in range(field_size)]
         
         idx_dict = dict()
