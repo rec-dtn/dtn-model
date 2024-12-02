@@ -1,7 +1,7 @@
 # Deep Multiple Task-specific Feature Interactions Network for Multi-Task Recommendation
 
 ## Model Architecture
-![hustlin_erd](./DTN_model.png)
+![hustlin_erd](./dtn.jpeg)
 
 ## Bibtex:
 ```
